@@ -338,6 +338,10 @@ public final class AskBotCommand {
 		if (config.internetAccess) {
 			prompt.append(" You may use internet search to find up-to-date information when it helps.");
 		}
+		if (config.allowCommands) {
+			prompt.append(" You can run Minecraft server commands using the run_minecraft_command tool when needed; "
+					+ "use it to inspect or change the world, then report the result.");
+		}
 		return prompt.toString();
 	}
 

@@ -26,6 +26,13 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.permissions.PermissionSet;
+import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 
 public final class AskBotClientCommand {
@@ -175,7 +182,62 @@ public final class AskBotClientCommand {
 
 		CompletableFuture<String> request;
 		try {
-			request = AiClient.complete(config, provider, history, question, systemPrompt);
+			if (config.allowCommands && "openai".equals(provider.type)) {
+				Minecraft cmdClient = client;
+				AiClient.CommandRunner runner = command -> {
+					CompletableFuture<String> future = new CompletableFuture<>();
+					MinecraftServer integrated = cmdClient.getSingleplayerServer();
+					if (integrated == null) {
+						future.complete("Command execution is only available in singleplayer.");
+						return future;
+					}
+					StringBuilder output = new StringBuilder();
+					CommandSource capturing = new CommandSource() {
+						public void sendSystemMessage(Component component) {
+							if (output.length() > 0) {
+								output.append('\n');
+							}
+							output.append(component.getString());
+						}
+
+						public boolean acceptsSuccess() {
+							return true;
+						}
+
+						public boolean acceptsFailure() {
+							return true;
+						}
+
+						public boolean shouldInformAdmins() {
+							return false;
+						}
+					};
+					ServerLevel level = integrated.overworld();
+					Vec3 pos = cmdClient.player != null ? cmdClient.player.position() : Vec3.ZERO;
+					CommandSourceStack stack = new CommandSourceStack(capturing, pos, Vec2.ZERO, level,
+							PermissionSet.ALL_PERMISSIONS, Component.literal("AskBot"), integrated);
+					Runnable task = () -> {
+						try {
+							String cmd = command == null ? "" : command.trim();
+							if (cmd.startsWith("/")) {
+								cmd = cmd.substring(1);
+							}
+							integrated.getCommands().performPrefixedCommand(stack, cmd);
+						} catch (Exception e) {
+							if (output.length() > 0) {
+								output.append('\n');
+							}
+							output.append("Error: ").append(e.getMessage());
+						}
+						future.complete(output.toString().trim());
+					};
+					integrated.execute(task);
+					return future;
+				};
+				request = AiClient.completeWithTools(config, provider, history, question, systemPrompt, runner);
+			} else {
+				request = AiClient.complete(config, provider, history, question, systemPrompt);
+			}
 		} catch (RuntimeException e) {
 			IN_FLIGHT.decrementAndGet();
 			error(source, "Could not start the AI request: " + AiException.describe(e));
@@ -552,6 +614,9 @@ public final class AskBotClientCommand {
 		}
 		if (config.internetAccess) {
 			prompt.append(" You may use internet search to find up-to-date information when it helps.");
+		}
+		if (config.allowCommands) {
+			prompt.append(" You can run Minecraft commands using the run_minecraft_command tool when needed.");
 		}
 		return prompt.toString();
 	}
