@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "askbot",
+	"version": "${version}",
+	"name": "AskBot",
+	"description": "Ask an AI chatbot questions from Minecraft chat with /askbot. Works with OpenRouter, OpenAI, Anthropic, Gemini, Ollama, LM Studio, vLLM and any OpenAI-compatible endpoint.",
+	"authors": [
+		"rootrequired"
+	],
+	"contact": {
+		"homepage": "https://t.me/rootrequired",
+		"sources": "https://github.com/rootrequired/askbot",
+		"issues": "https://github.com/rootrequired/askbot/issues"
+	},
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.askbot.AskBot"
+		],
+		"client": [
+			"dev.askbot.AskBotClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

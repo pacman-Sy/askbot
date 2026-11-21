@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+out/
+classes/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+
+# Fabric / Loom
+run/
+remappedSrc/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets - never commit a real askbot.json
+config/
+askbot.json
+.env
